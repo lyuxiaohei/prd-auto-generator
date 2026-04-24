@@ -1,0 +1,74 @@
+{
+  "name": "上传素材流程",
+  "description": "测试复杂流程的PRD生成，验证流程图和业务规则映射",
+  "sourceCode": {
+    "type": "javascript",
+    "keyFunctions": [
+      "openUploadModal()",
+      "handleFileSelect(files)",
+      "validateFileType(file)",
+      "validateFileSize(file)",
+      "uploadToServer(file)"
+    ],
+    "conditions": [
+      "if (!['image/jpeg', 'image/png', 'image/gif'].includes(file.type))",
+      "if (file.size > 3 * 1024 * 1024)",
+      "if (selectedCategoryId === null)"
+    ]
+  },
+  "featureOutline": {
+    "moduleName": "素材上传",
+    "features": [
+      {
+        "name": "上传素材弹窗",
+        "type": "modal",
+        "steps": ["选择分类", "选择文件", "校验格式", "校验大小", "上传"]
+      }
+    ]
+  },
+  "expectedOutput": {
+    "requiredSections": [
+      "1. 功能概述",
+      "2. 界面设计",
+      "2.1 页面原型",
+      "3. 业务逻辑",
+      "3.1 流程图",
+      "3.2 业务规则",
+      "4. 交互设计",
+      "4.1 输入项说明",
+      "4.3 错误提示文案"
+    ],
+    "flowchartType": "flowchart TD",
+    "flowchartNodes": {
+      "mustHave": ["[开始]", "[结束]", "{文件格式校验}", "{文件大小校验}"],
+      "branches": [
+        "|不通过|",
+        "|通过|",
+        "|超过限制|"
+      ]
+    },
+    "businessRules": [
+      {
+        "ruleId": "RULE-{MODULE}-001",
+        "name": "文件格式限制",
+        "description": "仅支持JPG、PNG、GIF格式",
+        "errorTip": "只能上传JPG、PNG、GIF格式的文件"
+      },
+      {
+        "ruleId": "RULE-{MODULE}-002",
+        "name": "文件大小限制",
+        "description": "单文件不超过3MB",
+        "errorTip": "文件大小不能超过3MB"
+      }
+    ],
+    "errorTips": {
+      "formValidation": [
+        {"field": "分类选择", "scenario": "未选择", "tip": "请选择目标分类"}
+      ],
+      "businessException": [
+        {"scenario": "格式不支持", "code": "ERROR-{MODULE}-001", "tip": "只能上传JPG、PNG、GIF格式的文件"},
+        {"scenario": "文件过大", "code": "ERROR-{MODULE}-002", "tip": "文件大小不能超过3MB"}
+      ]
+    }
+  }
+}

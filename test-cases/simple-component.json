@@ -1,0 +1,52 @@
+{
+  "name": "简单文本组件配置面板",
+  "description": "测试简单配置组件的PRD生成，验证按需生成规则",
+  "sourceCode": {
+    "type": "html",
+    "keyElements": [
+      "<input type='text' maxlength='30'>",
+      "<select><option>左对齐</option><option>居中</option><option>右对齐</option></select>",
+      "<input type='number' min='0' max='30'>"
+    ]
+  },
+  "featureOutline": {
+    "moduleName": "文本配置面板",
+    "features": [
+      {
+        "name": "配置项",
+        "type": "form",
+        "fields": ["文本内容", "对齐方式", "字体大小", "文字颜色"]
+      }
+    ]
+  },
+  "expectedOutput": {
+    "requiredSections": [
+      "1. 功能概述",
+      "2. 界面设计",
+      "2.1 页面原型",
+      "4. 交互设计",
+      "4.1 输入项说明"
+    ],
+    "optionalSections": [
+      "2.2 输出项说明",
+      "3.2 业务规则"
+    ],
+    "excludedSections": [
+      "3.1 流程图",
+      "3.3 状态机设计",
+      "6.1 批量操作规则",
+      "6.2 操作日志要求"
+    ],
+    "fieldNaming": {
+      "convention": "snake_case",
+      "examples": ["text_content", "align_type", "font_size", "text_color"]
+    },
+    "businessRules": [
+      {
+        "field": "文本内容",
+        "rule": "最大30字符",
+        "errorTip": "文本内容不能超过30个字符"
+      }
+    ]
+  }
+}
