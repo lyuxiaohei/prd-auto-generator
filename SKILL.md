@@ -1,160 +1,118 @@
 ---
 name: prd-auto-generator
-description: "基于业务逻辑清单+原型HTML、或功能大纲+源码，自动生成完整的产品需求文档(PRD)。支持Mermaid流程图、业务规则定义、状态机设计、一致性检查等功能。V3.0新增业务逻辑清单输入模式，完善技能链衔接。"
+description: "基于项目源码和业务规格，按版本范围生成完整的产品需求文档(PRD)。叙述体优先，表格为辅。"
 risk: low
 source: project
-date_added: "2026-04-04"
-version: "3.0"
-changes:
-  - V3.0: 新增业务逻辑清单+原型HTML输入模式；新增映射规则；完善技能链衔接（idea-refine → logic-list-spec → prototype-design → prd-auto-generator）
-  - V2.0: 模块化重构：拆分prompts/、rules/、templates/、validators/目录
-  - V1.6: 新增分计划执行机制、章节按需生成规则
-  - V1.5: 新增Phase0功能大纲确认流程
-  - V1.0: 初始版本
+date_added: "2026-04-13"
+version: "5.0"
+base_version: "4.0"
 ---
 
-# PRD文档自动生成技能 V3.0
+# PRD文档自动生成技能 V5.0
 
-基于业务逻辑清单+原型HTML、或功能大纲+源码分析，自动化生成标准化产品需求文档的专业技能。
+## 版本演进
 
-**V3.0 新增双输入模式：**
-- 模式1：业务逻辑清单 + 原型HTML（来自 logic-list-spec + prototype-design）
-- 模式2：功能大纲 + 源码（原有模式）
+| 版本 | 核心变化 |
+|------|----------|
+| V3.0 | 叙述体优先、信息不重复、按需输出、侧重小程序 |
+| V4.0 | 版本范围支持、材料清单、文档结构规则、版本级骨架模板 |
+| V5.0 | 增量版本指导、质量检查、模块前言、规则编号规范、骨架完善 |
 
----
-
-## 使用场景
-
-| 模式 | 适用场景 | 输入来源 |
-|------|----------|----------|
-| **业务逻辑清单模式** | 已有完整业务规格和原型 | logic-list-spec Extract输出 + prototype-design输出 |
-| **功能大纲模式** | 已有功能大纲和源码 | feature-outline.md + 源码目录 |
-| **无输入模式** | 需要从零开始 | Phase0生成功能大纲草案 |
+V5.0 在 V4.0 基础上强化：
+- **增量版本**：支持基于已有PRD生成新版本，识别新增/变更/未变更页面
+- **质量检查**：生成后自动校验编号连续性、规则去重、交叉引用一致性
+- **模块前言**：支持模块级概述段落（如收藏维度定义），不绑定具体页面
+- **骨架完善**：补充数据模型API表、导航子节（返回导航/登录拦截）、版本概述重置说明
+- **规则编号**：统一 RULE-{MODULE}-{SEQ} 格式规范
 
 ---
 
-## 技能链衔接
+## 执行流程
 
-```mermaid
-flowchart LR
-    A[需求] --> B[idea-refine]
-    B --> C[logic-list-spec Draft]
-    C --> D[草案业务逻辑清单]
-    D --> E[prototype-design]
-    E --> F[原型HTML]
-    F --> G[logic-list-spec Extract]
-    G --> H[正式版业务逻辑清单]
-    H --> I[prd-auto-generator]
-    I --> J[PRD文档]
-```
+### 阶段一：材料收集与分析（用户确认后进入阶段二）
 
----
+1. **读取原材料** — 按 `rules/material-checklist.md` 规定的顺序读取：业务逻辑清单 → 导航索引 → 现有PRD → 源码
+2. **确定版本范围** — 从导航索引提取版本标记，或使用用户指定的页面列表
+3. **识别增量变更** — 对比现有PRD，标注每个页面为新增/变更/未变更（仅增量版本需要）
+4. **梳理页面关系图** — 分析版本范围内页面的跳转关系，输出依赖关系图，提交用户审阅
+5. **梳理操作流程** — 基于页面关系图，生成各页面之间的操作流程，提交用户审阅
+6. **制定撰写计划** — 按 `rules/structure-rules.md` 确定模块编排和撰写顺序，提交用户审阅
+
+### 阶段二：生成版本PRD（每章写完提交用户审阅）
+
+7. 生成版本概述（版本范围、核心功能、数据来源、统计口径、示例账号、重置说明）
+8. 按模块逐页生成页面章节（使用 `templates/prd-page-section.md` 模板）
+   - 新增页面：完整生成全部小节
+   - 变更页面：标注变更点，更新受影响小节
+   - 未变更页面：引用旧版PRD，标注"同 V{上一版本}"
+9. 生成可选章节（数据模型、状态流转等）
+10. 生成页面导航章节（含返回导航、登录拦截子节）
+11. 质量检查（编号连续性、规则去重、交叉引用一致性）
+12. 合并为完整版本PRD，输出到指定路径
 
 ## 输入参数
 
-### 模式1：业务逻辑清单+原型HTML
+| 参数名称 | 参数说明 | 必填 |
+|----------|----------|------|
+| 源码目录 | 项目HTML/JS文件根目录 | 是 |
+| 项目名称 | 项目根目录的文件夹名称（自动从路径提取） | 是 |
+| 版本号 | 目标版本号，如 V0.1、V1.0 | 是 |
+| 输出路径 | PRD文档保存路径（默认 PRD/） | 否 |
+| 页面列表 | 指定页面清单（覆盖导航索引的版本标记） | 否 |
+| 业务逻辑清单路径 | 业务逻辑清单文件路径 | 是 |
+| 上一版PRD路径 | 增量版本时提供上一版PRD路径 | 否 |
 
-| 参数名称 | 参数说明 | 示例值 |
-|----------|----------|--------|
-| 业务逻辑清单路径 | 正式版业务逻辑清单文件路径 | doc/V0.3/业务逻辑清单_V0.3.md |
-| 原型HTML目录 | 原型页面HTML文件目录 | pages/ |
-| 输出路径 | 生成的PRD文档保存路径 | PRD-{项目名}-V1.0.md |
+## 输出规范
 
-### 模式2：功能大纲+源码（原有）
+### 输出文件
 
-| 参数名称 | 参数说明 | 示例值 |
-|----------|----------|--------|
-| 功能大纲路径 | 项目功能结构大纲文件路径 | feature-outline.md |
-| 规范文档路径 | 需求文档编写规范模板路径 | references/prd-template-specification.md |
-| 源码目录 | 项目源码根目录 | src/ |
-| 输出路径 | 生成的PRD文档保存路径 | PRD-{项目名}-V1.0.md |
+- 输出目录：项目根目录下的 `PRD/` 文件夹，不存在时自动创建
+- 文件命名：`PRD-{项目文件夹名称}-V{版本号}.md`（项目名称取当前项目根目录的文件夹名，如项目在 `mini-program/` 下则命名为 `PRD-mini-program-V0.1.md`）
+- 一份完整的版本PRD为一个文件
+- 文件结构遵循 `rules/structure-rules.md` 定义的章节编排
+- 页面章节使用 `templates/prd-page-section.md` 的6节模板
+- 整体骨架使用 `templates/version-prd.md`
 
----
+### 质量检查项
 
-## 执行流程概览
+生成完成后自动执行以下检查：
 
-```mermaid
-flowchart TD
-    A[开始] --> B{输入类型检测}
-    B -->|业务逻辑清单+原型HTML| C[Phase1-新: 解析清单+分析原型]
-    B -->|功能大纲+源码| D[Phase1: 信息收集原流程]
-    B -->|无输入| E[Phase0: 生成功能大纲草案]
-    E --> F[用户确认]
-    C --> G[Phase2: 模块分析]
-    D --> G
-    F -->|确认| G
-    G --> H[Phase2.5: 分计划执行]
-    H --> I[Phase3: 文档生成]
-    I --> J[Phase4: 一致性检查]
-    J --> K[输出PRD文档]
-    K --> L[结束]
+| 检查项 | 说明 |
+|--------|------|
+| 标题编号连续性 | 页面内小节编号无跳号（2.1.1→2.1.2→2.1.3） |
+| 章节编号连续性 | 二级标题中文数字无跳号（一→二→三） |
+| 规则编号唯一 | RULE-{MODULE}-{SEQ} 无重复编号 |
+| 交叉引用一致 | 页面跳转节中提到的页面在PRD范围内有对应章节 |
+| 流程图语法 | Mermaid代码块可正确渲染，无禁止字符 |
+| 版本范围对齐 | 页面清单中的每个页面在PRD中有对应章节 |
+
+### 章节结构
+
+详见 `rules/structure-rules.md`。核心结构：
+
+```
+一、版本概述       [必选]
+二~N-1、模块章节   [必选，按用户操作路径排序]
+N、数据模型        [可选]
+N+1、页面导航      [必选]
 ```
 
-### 详细执行阶段
-
-| 阶段 | 说明 | 参考文档 |
-|------|------|----------|
-| Phase 0 | 功能大纲确认：分析源码生成功能大纲草案 | [prompts/phase0-outline-confirm.md](prompts/phase0-outline-confirm.md) |
-| Phase 1 | 信息收集：读取功能大纲、解析规范、扫描源码 | [prompts/phase1-info-collect.md](prompts/phase1-info-collect.md) |
-| Phase 1-新 | 业务逻辑清单解析：解析清单结构、提取用例/字段/规则 | [prompts/phase1-logic-list-parse.md](prompts/phase1-logic-list-parse.md) |
-| Phase 2 | 模块分析：判断模块是否需要拆分 | [prompts/phase2-module-analysis.md](prompts/phase2-module-analysis.md) |
-| Phase 2.5 | 分计划执行：按小节数量计算计划数，分步生成 | [prompts/phase2.5-plan-execution.md](prompts/phase2.5-plan-execution.md) |
-| Phase 3 | 文档生成：按标准章节结构生成内容 | [prompts/phase3-doc-generation.md](prompts/phase3-doc-generation.md) |
-| Phase 4 | 一致性检查：对比大纲、校验规则 | [prompts/phase4-consistency-check.md](prompts/phase4-consistency-check.md) |
-
 ---
 
-## 核心规则索引
+## 模板与规则索引
 
-| 规则类型 | 说明 | 参考文档 |
-|----------|------|----------|
-| 业务逻辑清单映射 | 清单各部分→PRD章节映射规则 | [rules/logic-list-mapping.md](rules/logic-list-mapping.md) |
-| 原型HTML分析 | 从原型HTML提取输入项/输出项/交互 | [rules/prototype-html-analysis.md](rules/prototype-html-analysis.md) |
-| 流程图编写 | 绘制场景判定、节点命名、与业务规则映射 | [rules/flowchart-rules.md](rules/flowchart-rules.md) |
-| 源码分析 | HTML/JS/TypeScript项目分析方法 | [rules/sourcecode-analysis.md](rules/sourcecode-analysis.md) |
-| 命名规范 | 字段标识snake_case、标题编号格式 | [rules/naming-conventions.md](rules/naming-conventions.md) |
-| 章节生成 | 按需生成判断表、典型场景示例 | [rules/chapter-generation.md](rules/chapter-generation.md) |
+### 模板
 
----
+| 模板 | 说明 | 文件 |
+|------|------|------|
+| 版本PRD骨架 | 整份文档的章节骨架 | [templates/version-prd.md](templates/version-prd.md) |
+| 页面章节 | 单个页面的6节结构 | [templates/prd-page-section.md](templates/prd-page-section.md) |
 
-## 输出模板索引
+### 规则
 
-| 模板类型 | 说明 | 参考文档 |
-|----------|------|----------|
-| 文档头部 | 前置章节结构 | [templates/prd-header.md](templates/prd-header.md) |
-| 页面章节 | 六级子项完整模板 | [templates/prd-page-section.md](templates/prd-page-section.md) |
-| 文档尾部 | 非功能需求、附录、版本记录 | [templates/prd-footer.md](templates/prd-footer.md) |
-| 业务规则表 | 规则编号命名、表格格式 | [templates/business-rule-table.md](templates/business-rule-table.md) |
-
----
-
-## 校验工具索引
-
-| 工具类型 | 说明 | 参考文档 |
-|----------|------|----------|
-| 输入验证 | 业务逻辑清单+原型HTML输入验证 | [validators/input-validator.md](validators/input-validator.md) |
-| 质量检查清单 | 6大类检查项 | [validators/quality-checklist.md](validators/quality-checklist.md) |
-| 常见错误对照 | 15种错误类型 | [validators/common-errors.md](validators/common-errors.md) |
-| 格式校验脚本 | 自动校验PRD格式 | [scripts/validate-prd.sh](scripts/validate-prd.sh) |
-| 一致性校验脚本 | 校验与大纲一致性 | [scripts/check-consistency.sh](scripts/check-consistency.sh) |
-
----
-
-## 参考文档
-
-| 文档名称 | 说明 |
-|----------|------|
-| [references/logic-list-input-example.md](references/logic-list-input-example.md) | 业务逻辑清单输入示例 |
-| [references/prd-template-specification.md](references/prd-template-specification.md) | PRD文档章节结构规范 |
-| [references/example-feature-outline.md](references/example-feature-outline.md) | 功能大纲格式示例 |
-| [references/example-prd-output-v3.md](references/example-prd-output-v3.md) | V3.0完整PRD示例 |
-
----
-
-## 测试用例
-
-| 用例名称 | 测试场景 |
-|----------|----------|
-| [test-cases/simple-component.json](test-cases/simple-component.json) | 简单配置组件 |
-| [test-cases/complex-flow.json](test-cases/complex-flow.json) | 复杂操作流程 |
-| [test-cases/state-machine.json](test-cases/state-machine.json) | 状态机设计 |
+| 规则 | 说明 | 文件 |
+|------|------|------|
+| 材料清单 | 原材料读取顺序和策略 | [rules/material-checklist.md](rules/material-checklist.md) |
+| 文档结构 | 章节编排、编号规则、模块排序 | [rules/structure-rules.md](rules/structure-rules.md) |
+| 写作规则 | 叙述体写法、表格使用原则、去重规则 | [rules/writing-rules.md](rules/writing-rules.md) |
+| 流程图规则 | Mermaid流程图绘制规范 | [rules/flowchart-rules.md](rules/flowchart-rules.md) |
